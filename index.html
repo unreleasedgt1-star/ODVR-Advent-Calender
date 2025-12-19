@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ODVR Advent Calender</title>
+    <link rel="icon" type="image/png" href="orion-logo.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a1128 0%, #1a2456 50%, #2d1b4e 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .snowflake {
+            position: fixed;
+            top: -10px;
+            z-index: 1;
+            color: #fff;
+            font-size: 1em;
+            opacity: 0.8;
+            animation: fall linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+            }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            animation: fadeIn 1s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-size: 3.5em;
+            background: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb, #ff6b6b);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease infinite;
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(255, 107, 107, 0.5);
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .subtitle {
+            font-size: 1.3em;
+            color: #feca57;
+            margin-bottom: 30px;
+        }
+
+        .timer-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 50px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .day-info {
+            font-size: 1.5em;
+            color: #feca57;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .timer {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .time-unit {
+            background: rgba(255, 107, 107, 0.2);
+            border: 2px solid #ff6b6b;
+            border-radius: 15px;
+            padding: 20px 30px;
+            text-align: center;
+            min-width: 120px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .time-value {
+            font-size: 3em;
+            font-weight: bold;
+            color: #feca57;
+            display: block;
+        }
+
+        .time-label {
+            font-size: 0.9em;
+            color: #ddd;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .status-message {
+            text-align: center;
+            font-size: 1.2em;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .status-available {
+            background: rgba(72, 219, 251, 0.2);
+            border: 2px solid #48dbfb;
+            color: #48dbfb;
+        }
+
+        .status-upcoming {
+            background: rgba(254, 202, 87, 0.2);
+            border: 2px solid #feca57;
+            color: #feca57;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        .calendar-day {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .calendar-day:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.3);
+            border-color: #ff6b6b;
+        }
+
+        .calendar-day.unlocked:hover {
+            cursor: pointer;
+        }
+
+        .calendar-day.locked {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .calendar-day.unlocked {
+            background: rgba(72, 219, 251, 0.2);
+            border-color: #48dbfb;
+        }
+
+        .calendar-day.today {
+            background: rgba(254, 202, 87, 0.3);
+            border-color: #feca57;
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(254, 202, 87, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(254, 202, 87, 0.8); }
+        }
+
+        .day-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #feca57;
+            margin-bottom: 10px;
+        }
+
+        .day-status {
+            font-size: 0.9em;
+            color: #ddd;
+        }
+
+        .timezone-info {
+            text-align: center;
+            margin-top: 30px;
+            color: #aaa;
+            font-size: 0.9em;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, rgba(26, 36, 86, 0.95), rgba(45, 27, 78, 0.95));
+            margin: 5% auto;
+            padding: 40px;
+            border: 2px solid rgba(255, 107, 107, 0.5);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            position: relative;
+            animation: modalSlideIn 0.3s ease;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .close {
+            color: #feca57;
+            float: right;
+            font-size: 35px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 20px;
+        }
+
+        .close:hover {
+            color: #ff6b6b;
+        }
+
+        .modal-day-number {
+            font-size: 3em;
+            color: #feca57;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .cosmetic-item {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #48dbfb;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .cosmetic-name {
+            font-size: 1.5em;
+            color: #feca57;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .cosmetic-type {
+            color: #48dbfb;
+            font-size: 1.1em;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+            
+            .timer {
+                gap: 10px;
+            }
+            
+            .time-unit {
+                min-width: 80px;
+                padding: 15px 20px;
+            }
+            
+            .time-value {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎄 ORION DRIFT VR 🎄</h1>
+            <div class="subtitle">Advent Calendar 2025 - Daily Cosmetics</div>
+        </header>
+
+        <div class="timer-section">
+            <div class="day-info" id="dayInfo">Loading...</div>
+            <div class="timer" id="timer">
+                <div class="time-unit">
+                    <span class="time-value" id="days">00</span>
+                    <span class="time-label">Days</span>
+                </div>
+                <div class="time-unit">
+                    <span class="time-value" id="hours">00</span>
+                    <span class="time-label">Hours</span>
+                </div>
+                <div class="time-unit">
+                    <span class="time-value" id="minutes">00</span>
+                    <span class="time-label">Minutes</span>
+                </div>
+                <div class="time-unit">
+                    <span class="time-value" id="seconds">00</span>
+                    <span class="time-label">Seconds</span>
+                </div>
+            </div>
+            <div class="status-message" id="statusMessage"></div>
+        </div>
+
+        <div class="calendar-grid" id="calendarGrid"></div>
+
+        <div class="timezone-info" id="timezoneInfo"></div>
+    </div>
+
+    <!-- Modal -->
+    <div id="cosmeticModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-day-number" id="modalDayNumber"></div>
+            <div id="cosmeticDetails"></div>
+        </div>
+    </div>
+
+    <script>
+        // Cosmetics data for each day
+        const cosmetics = {
+            1: [
+                { name: 'Peppermatrix', type: 'Color' },
+                { name: 'Peppermatrix', type: 'Pattern' }
+            ],
+            2: [
+                { name: 'Coming Soon', type: 'Unlock at 1 PM!' }
+            ],
+            3: [
+                { name: 'Coming Soon', type: 'Unlock at 1 PM!' }
+            ],
+            4: [
+                { name: 'Coming Soon', type: 'Unlock at 1 PM!' }
+            ],
+            5: [
+                { name: 'Coming Soon', type: 'Unlock at 1 PM!' }
+            ],
+            6: [
+                { name: 'Coming Soon', type: 'Unlock at 1 PM!' }
+            ],
+            7: [
+                { name: 'Coming Soon', type: 'Unlock at 1 PM!' }
+            ]
+        };
+
+        // Modal functionality
+        const modal = document.getElementById('cosmeticModal');
+        const closeBtn = document.getElementsByClassName('close')[0];
+
+        closeBtn.onclick = function() {
+            modal.style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function showCosmetics(day) {
+            const currentDay = getCurrentDay();
+            
+            // Only show cosmetics for unlocked days
+            if (day > currentDay) {
+                return;
+            }
+
+            document.getElementById('modalDayNumber').textContent = `🎁 Day ${day} Cosmetics`;
+            
+            const cosmeticDetails = document.getElementById('cosmeticDetails');
+            cosmeticDetails.innerHTML = '';
+            
+            cosmetics[day].forEach(cosmetic => {
+                const item = document.createElement('div');
+                item.className = 'cosmetic-item';
+                item.innerHTML = `
+                    <div class="cosmetic-name">${cosmetic.name}</div>
+                    <div class="cosmetic-type">${cosmetic.type}</div>
+                `;
+                cosmeticDetails.appendChild(item);
+            });
+            
+            modal.style.display = 'block';
+        }
+
+        // Create snowflakes
+        function createSnowflakes() {
+            const snowflakeCount = 50;
+            for (let i = 0; i < snowflakeCount; i++) {
+                const snowflake = document.createElement('div');
+                snowflake.classList.add('snowflake');
+                snowflake.innerHTML = '❄';
+                snowflake.style.left = Math.random() * 100 + '%';
+                snowflake.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                snowflake.style.animationDelay = Math.random() * 5 + 's';
+                snowflake.style.fontSize = (Math.random() * 10 + 10) + 'px';
+                document.body.appendChild(snowflake);
+            }
+        }
+        createSnowflakes();
+
+        // Get user's timezone
+        const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        
+        // Convert 1 PM EST to user's local time
+        const estTime = new Date('2025-12-19T13:00:00-05:00');
+        const userLocalTime = estTime.toLocaleTimeString('en-US', { 
+            timeZone: userTimezone, 
+            hour: 'numeric', 
+            minute: '2-digit',
+            hour12: true 
+        });
+        
+        // Get user's timezone abbreviation
+        const userTimeAbbr = new Date().toLocaleTimeString('en-US', {
+            timeZone: userTimezone,
+            timeZoneName: 'short'
+        }).split(' ').pop();
+        
+        document.getElementById('timezoneInfo').textContent = `Your timezone: ${userTimezone} | Daily unlock: ${userLocalTime} ${userTimeAbbr}`;
+
+        // Function to get next unlock time (1 PM EST)
+        function getNextUnlockTime() {
+            const now = new Date();
+            
+            // Create date for 1 PM EST today
+            const estNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+            const unlockTime = new Date(estNow);
+            unlockTime.setHours(13, 0, 0, 0); // 1 PM EST
+            
+            // If it's past 1 PM EST today, get tomorrow's unlock time
+            if (estNow >= unlockTime) {
+                unlockTime.setDate(unlockTime.getDate() + 1);
+            }
+            
+            // Convert back to user's local time
+            const estString = unlockTime.toLocaleString('en-US', { timeZone: 'America/New_York' });
+            return new Date(new Date(estString).toLocaleString('en-US', { timeZone: userTimezone }));
+        }
+
+        // Function to get current day number (1-7)
+        // Day 1 unlocks today (Dec 19) at 1 PM EST
+        function getCurrentDay() {
+            const now = new Date();
+            const estNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+            
+            // Event starts Dec 19, 2025 at 1 PM EST
+            const eventStart = new Date('2025-12-19T13:00:00-05:00');
+            const eventStartEST = new Date(eventStart.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+            
+            // If before the event starts, no days unlocked yet
+            if (estNow < eventStartEST) {
+                return 0; // No days unlocked yet
+            }
+            
+            // Calculate full days since event start
+            const timeDiff = estNow - eventStartEST;
+            const daysPassed = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+            
+            // Check if we've passed today's 1 PM EST unlock time
+            const todayUnlock = new Date(estNow);
+            todayUnlock.setHours(13, 0, 0, 0);
+            
+            let currentDay = daysPassed + 1; // Day 1 on first day, Day 2 on second day, etc.
+            
+            // If we haven't reached today's 1 PM unlock yet, we're still on previous day
+            if (estNow.getHours() < 13 || (estNow.getHours() === 13 && estNow.getMinutes() === 0 && estNow.getSeconds() === 0)) {
+                if (daysPassed > 0) {
+                    currentDay = daysPassed;
+                }
+            }
+            
+            // Limit to 1-7
+            return Math.min(Math.max(currentDay, 1), 7);
+        }
+
+        // Update timer
+        function updateTimer() {
+            const nextUnlock = getNextUnlockTime();
+            const now = new Date();
+            const diff = nextUnlock - now;
+
+            if (diff <= 0) {
+                location.reload(); // Reload when new cosmetic unlocks
+                return;
+            }
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            document.getElementById('days').textContent = String(days).padStart(2, '0');
+            document.getElementById('hours').textContent = String(hours).padStart(2, '0');
+            document.getElementById('minutes').textContent = String(minutes).padStart(2, '0');
+            document.getElementById('seconds').textContent = String(seconds).padStart(2, '0');
+
+            const currentDay = getCurrentDay();
+            document.getElementById('dayInfo').textContent = `Day ${currentDay} of 7`;
+
+            const statusMsg = document.getElementById('statusMessage');
+            const estNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+            const todayUnlock = new Date(estNow);
+            todayUnlock.setHours(13, 0, 0, 0);
+
+            if (estNow >= todayUnlock) {
+                statusMsg.textContent = `✨ Day ${currentDay} cosmetics are now available!`;
+                statusMsg.className = 'status-message status-available';
+            } else {
+                statusMsg.textContent = `⏰ Next cosmetic unlocks in...`;
+                statusMsg.className = 'status-message status-upcoming';
+            }
+        }
+
+        // Generate calendar
+        function generateCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            const currentDay = getCurrentDay();
+
+            for (let i = 1; i <= 7; i++) {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'calendar-day';
+                
+                if (i < currentDay) {
+                    dayDiv.classList.add('unlocked');
+                    dayDiv.onclick = () => showCosmetics(i);
+                } else if (i === currentDay) {
+                    dayDiv.classList.add('today');
+                    dayDiv.onclick = () => showCosmetics(i);
+                } else {
+                    dayDiv.classList.add('locked');
+                }
+
+                dayDiv.innerHTML = `
+                    <div class="day-number">${i}</div>
+                    <div class="day-status">${i < currentDay ? '✅ Unlocked' : i === currentDay ? '🎁 Today' : '🔒 Locked'}</div>
+                `;
+
+                grid.appendChild(dayDiv);
+            }
+        }
+
+        // Initialize
+        updateTimer();
+        generateCalendar();
+        setInterval(updateTimer, 1000);
+    </script>
+</body>
+</html>
