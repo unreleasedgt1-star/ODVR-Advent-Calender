@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ODVR Advent Calender</title>
+    <title>ODVR Advent</title>
     <link rel="icon" type="image/png" href="orion-logo.png">
     <style>
         * {
@@ -468,21 +468,43 @@
 
         // Function to get next unlock time (1 PM EST)
         function getNextUnlockTime() {
+            // Create a date object for 1 PM EST
             const now = new Date();
             
-            // Create date for 1 PM EST today
-            const estNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-            const unlockTime = new Date(estNow);
-            unlockTime.setHours(13, 0, 0, 0); // 1 PM EST
+            // Get current EST time
+            const estFormatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/New_York',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
             
-            // If it's past 1 PM EST today, get tomorrow's unlock time
-            if (estNow >= unlockTime) {
-                unlockTime.setDate(unlockTime.getDate() + 1);
+            const estParts = estFormatter.formatToParts(now);
+            const estTime = {};
+            estParts.forEach(part => {
+                if (part.type !== 'literal') {
+                    estTime[part.type] = parseInt(part.value);
+                }
+            });
+            
+            // Create next 1 PM EST unlock
+            const nextUnlock = new Date(Date.UTC(
+                estTime.year,
+                estTime.month - 1,
+                estTime.day,
+                18, 0, 0, 0 // 1 PM EST = 6 PM UTC (18:00)
+            ));
+            
+            // If current EST time is past 1 PM, move to next day
+            if (estTime.hour >= 13) {
+                nextUnlock.setUTCDate(nextUnlock.getUTCDate() + 1);
             }
             
-            // Convert back to user's local time
-            const estString = unlockTime.toLocaleString('en-US', { timeZone: 'America/New_York' });
-            return new Date(new Date(estString).toLocaleString('en-US', { timeZone: userTimezone }));
+            return nextUnlock;
         }
 
         // Function to get current day number (1-7)
